@@ -44,18 +44,11 @@ export function variantOf(id) {
 
 export const DEFAULT_DATA = {
   profile: {
-    name: 'Aurora Prameswari',
-    bio: 'Kreator konten & desainer. Kumpulan semua karyaku, kelas, dan cara hubungi aku ada di bawah ✨',
+    name: '',
+    bio: '',
     avatar: '',
   },
-  links: [
-    { id: 'ig', title: 'Instagram', url: 'https://instagram.com', brand: 'instagram', active: true },
-    { id: 'tiktok', title: 'TikTok', url: 'https://tiktok.com', brand: 'auto', active: true },
-    { id: 'wa', title: 'WhatsApp Bisnis', url: 'https://wa.me/6281234567890', brand: 'auto', active: true },
-    { id: 'porto', title: 'Portfolio & Karya', url: 'https://behance.net', brand: 'website', active: true },
-    { id: 'kelas', title: 'Kelas Online Desain', url: 'https://example.com/kelas', brand: 'auto', active: true },
-    { id: 'saweria', title: 'Dukung via Saweria', url: 'https://saweria.co', brand: 'website', active: false },
-  ],
+  links: [],
   theme: {
     bgVariant: 'aurora',
     accent: '#22d3ee',

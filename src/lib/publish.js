@@ -102,6 +102,29 @@ export function slugify(name) {
   return s || 'tautan'
 }
 
+// Akhiran acak tak tertebak untuk slug publik (crypto, fallback Math.random).
+export function randomSuffix(len = 6) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const out = []
+  try {
+    const buf = new Uint32Array(len)
+    crypto.getRandomValues(buf)
+    for (let i = 0; i < len; i++) out.push(chars[buf[i] % chars.length])
+  } catch {
+    for (let i = 0; i < len; i++) out.push(chars[Math.floor(Math.random() * chars.length)])
+  }
+  return out.join('')
+}
+
+// Slug publik: base + akhiran acak, total maks 40 char.
+export function makePublicSlug(base) {
+  let b = slugify(base).replace(/-+$/g, '')
+  const suffix = randomSuffix()
+  const max = 40 - suffix.length - 1
+  if (b.length > max) b = b.slice(0, max).replace(/-+$/g, '')
+  return `${b || 'tautan'}-${suffix}`
+}
+
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text)

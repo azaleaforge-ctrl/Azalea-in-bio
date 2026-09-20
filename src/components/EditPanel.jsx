@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { BG_VARIANTS } from '../data/defaults.js'
 import { BRANDS, BrandIcon, detectBrand } from './icons/brandIcons.jsx'
-import { listPublished, savePublished, deletePublished, prettyUrl, slugify, copyText, snapshotOf } from '../lib/publish.js'
-import { saveBioCloud, deleteBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
+import { listPublished, savePublished, deletePublished, prettyUrl, slugify, makePublicSlug, copyText, snapshotOf } from '../lib/publish.js'
+import { saveBioCloud, deleteBioCloud, getBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
 import { toast } from './Toast.jsx'
 import { uploadAvatar, uploadLinkIcon } from '../lib/uploadImage.js'
 import ConfirmDialog from './Confirm.jsx'
@@ -185,7 +185,7 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
         <section className="mt-4 grid grid-cols-3 gap-2 pb-2">
           <button onClick={onExport} className="rounded-xl bg-white/10 px-2 py-2.5 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⬇ Export</button>
           <button onClick={() => fileImport.current?.click()} className="rounded-xl bg-white/10 px-2 py-2.5 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⬆ Import</button>
-          <button onClick={() => setConfirm({ title: 'Kembalikan ke demo?', message: 'Semua perubahan akan dikembalikan ke data demo awal. Lanjutkan?', confirmLabel: 'Ya, reset', onYes: () => { onReset(); setConfirm(null) } })} className="rounded-xl bg-red-500/25 px-2 py-2.5 text-xs font-bold text-red-100 ring-1 ring-red-400/20 hover:bg-red-500/40 active:scale-95">↺ Reset</button>
+          <button onClick={() => setConfirm({ title: 'Kosongkan semua isi?', message: 'Semua isi akan dihapus dan dikosongkan. Lanjutkan?', confirmLabel: 'Ya, kosongkan', onYes: () => { onReset(); setConfirm(null) } })} className="rounded-xl bg-red-500/25 px-2 py-2.5 text-xs font-bold text-red-100 ring-1 ring-red-400/20 hover:bg-red-500/40 active:scale-95">↺ Reset</button>
           <input ref={fileImport} type="file" accept="application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onImportFile(f); e.target.value = '' }} />
         </section>
       </aside>
@@ -271,35 +271,91 @@ function PublishSection({ data, requestConfirm }) {
   }, [])
 
   const normSlug = String(slug || '').trim().toLowerCase()
-  const isPublished = normSlug ? items.some((i) => i.id === normSlug) : false
+  // Sudah terbit bila ada item dengan id persis ATAU berawalan base + '-' (slug bersuffix).
+  const publishedMatch = normSlug
+    ? items.find((i) => i.id === normSlug || i.id.startsWith(normSlug + '-'))
+    : null
+  const isPublished = !!publishedMatch
 
-  // Link stabil /slug (cloud): isi bisa diubah kapan aja via Perbarui tanpa ganti URL.
-  async function doPublish(id) {
-    const raw = (id || slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
-    if (!/^[a-z0-9-]{3,30}$/.test(raw)) {
-      setMsg('Slug harus 3–30 karakter: huruf kecil, angka, strip (-).')
-      toast('Slug tidak valid', 'error')
-      return
-    }
+  // Simpan snapshot ke id yang SAMA (tidak pernah regen suffix di sini).
+  async function saveToId(id) {
     setSaving(true)
     setMsg('')
     try {
       if (isFirebaseConfigured) {
-        await saveBioCloud(raw, snapshotOf(data))
+        await saveBioCloud(id, snapshotOf(data))
       }
     } catch {
       setMsg('Gagal simpan ke cloud. Cek koneksi / rules Firestore.')
       toast('Gagal simpan ke cloud', 'error')
       setSaving(false)
+      return null
+    }
+    savePublished(id, data)
+    setItems(listPublished())
+    setLastUrl(prettyUrl(id))
+    setSaving(false)
+    return id
+  }
+
+  // Publish BARU: beri akhiran acak, cek tabrakan lokal + cloud (maks 3x).
+  async function doPublishNew() {
+    const base = (slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
+    if (!/^[a-z0-9-]{3,30}$/.test(base)) {
+      setMsg('Nama harus 3–30 karakter: huruf kecil, angka, strip (-).')
+      toast('Nama tidak valid', 'error')
       return
     }
-    savePublished(raw, data)
-    setItems(listPublished())
-    setLastUrl(prettyUrl(raw))
-    setMsg(isFirebaseConfigured
-      ? `Terbit di /${raw} ✓ Link tetap — edit lalu tekan Perbarui.`
-      : 'Firebase belum dikonfigurasi di app ini — link hanya tersimpan di perangkat ini.')
+    setSaving(true)
+    setMsg('')
+    let candidate = ''
+    for (let i = 0; i < 3; i++) {
+      candidate = makePublicSlug(base)
+      if (candidate.length > 40) continue
+      const takenLocal = listPublished().some((it) => it.id === candidate)
+      const takenCloud = isFirebaseConfigured ? !!(await getBioCloud(candidate)) : false
+      if (!takenLocal && !takenCloud) break
+      candidate = ''
+    }
+    if (!candidate) {
+      setSaving(false)
+      setMsg('Gagal membuat link unik. Coba lagi.')
+      toast('Gagal membuat link unik', 'error')
+      return
+    }
     setSaving(false)
+    const id = await saveToId(candidate)
+    if (id) {
+      toast(`Terbit di /${id} ✓`)
+      setMsg(`Terbit di /${id} ✓ Perbarui tidak mengubah URL.`)
+    }
+  }
+
+  // Tombol utama: sudah punya terbitan untuk base ini → perbarui itu;
+  // belum → buat terbitan baru bersuffix. Per-item selalu pakai id yang sama.
+  async function doPublish(id) {
+    if (id) {
+      if (!/^[a-z0-9-]{3,40}$/.test(id)) {
+        setMsg('ID link tidak valid.')
+        toast('ID link tidak valid', 'error')
+        return
+      }
+      const saved = await saveToId(id)
+      if (saved) {
+        toast(`Perubahan di /${saved} disimpan ✓`)
+        setMsg(`Perubahan di /${saved} disimpan ✓`)
+      }
+      return
+    }
+    if (publishedMatch) {
+      const saved = await saveToId(publishedMatch.id)
+      if (saved) {
+        toast(`Perubahan di /${saved} disimpan ✓`)
+        setMsg(`Perubahan di /${saved} disimpan ✓`)
+      }
+      return
+    }
+    await doPublishNew()
   }
 
   async function doCopy(url) {
@@ -336,8 +392,8 @@ function PublishSection({ data, requestConfirm }) {
   return (
     <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
       <h3 className="font-display mb-1 text-sm font-bold uppercase tracking-widest text-slate-300/70">Publish Publik 🚀</h3>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link stabil ala Linktree: <code>/{slug || 'nama-kamu'}</code>. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama.</p>
-      <label className="block text-xs font-semibold text-slate-300/70">Nama bio (slug)</label>
+      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link unik ala Linktree: <code>/{slug || 'nama-kamu'}-xxxxxx</code>. Akhiran acak tiap terbitan — tidak bisa ditebak. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama. Link lama tanpa akhiran tetap jalan.</p>
+      <label className="block text-xs font-semibold text-slate-300/70">Nama bio (dasar link)</label>
       <div className="mt-1 flex gap-2">
         <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
         <button
