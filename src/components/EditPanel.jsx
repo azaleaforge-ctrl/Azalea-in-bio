@@ -3,12 +3,16 @@ import { BG_VARIANTS } from '../data/defaults.js'
 import { BRANDS, BrandIcon, detectBrand } from './icons/brandIcons.jsx'
 import { listPublished, savePublished, deletePublished, prettyUrl, slugify, copyText, snapshotOf } from '../lib/publish.js'
 import { saveBioCloud, deleteBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
+import { toast } from './Toast.jsx'
+import ConfirmDialog from './Confirm.jsx'
 
 const ACCENTS = ['#22d3ee', '#f472b6', '#a3e635', '#facc15', '#8b5cf6', '#fb923c']
 
 export default function EditPanel({ data, setData, onExport, onImportFile, onReset, onClose }) {
   const fileAvatar = useRef(null)
   const fileImport = useRef(null)
+  const [confirm, setConfirm] = useState(null)
+  const closeConfirm = () => setConfirm(null)
 
   // Tutup panel dengan tombol Escape
   useEffect(() => {
@@ -30,7 +34,16 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
     setData((d) => ({ ...d, links: d.links.map((l) => (l.id === id ? { ...l, ...p } : l)) }))
   }
   function removeLink(id) {
-    setData((d) => ({ ...d, links: d.links.filter((l) => l.id !== id) }))
+    const target = data.links.find((l) => l.id === id)
+    setConfirm({
+      title: 'Hapus tautan?',
+      message: `"${target?.title || 'Tautan'}" akan dihapus dari daftar. Lanjutkan?`,
+      confirmLabel: 'Ya, hapus',
+      onYes: () => {
+        setData((d) => ({ ...d, links: d.links.filter((l) => l.id !== id) }))
+        setConfirm(null)
+      },
+    })
   }
   function moveLink(id, dir) {
     setData((d) => {
@@ -102,7 +115,7 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
           <textarea value={data.profile.bio} onChange={(e) => patchProfile({ bio: e.target.value })} rows={3} className="mt-1 w-full rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
         </section>
 
-        <PublishSection data={data} />
+        <PublishSection data={data} requestConfirm={(c) => setConfirm(c)} />
 
         {/* Background */}
         <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
@@ -150,10 +163,18 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
         <section className="mt-4 grid grid-cols-3 gap-2 pb-2">
           <button onClick={onExport} className="rounded-xl bg-white/10 px-2 py-2.5 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⬇ Export</button>
           <button onClick={() => fileImport.current?.click()} className="rounded-xl bg-white/10 px-2 py-2.5 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⬆ Import</button>
-          <button onClick={() => { if (confirm('Kembalikan ke demo awal?')) onReset() }} className="rounded-xl bg-red-500/25 px-2 py-2.5 text-xs font-bold text-red-100 ring-1 ring-red-400/20 hover:bg-red-500/40 active:scale-95">↺ Reset</button>
+          <button onClick={() => setConfirm({ title: 'Kembalikan ke demo?', message: 'Semua perubahan akan dikembalikan ke data demo awal. Lanjutkan?', confirmLabel: 'Ya, reset', onYes: () => { onReset(); setConfirm(null) } })} className="rounded-xl bg-red-500/25 px-2 py-2.5 text-xs font-bold text-red-100 ring-1 ring-red-400/20 hover:bg-red-500/40 active:scale-95">↺ Reset</button>
           <input ref={fileImport} type="file" accept="application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onImportFile(f); e.target.value = '' }} />
         </section>
       </aside>
+      <ConfirmDialog
+        open={!!confirm}
+        title={confirm?.title || ''}
+        message={confirm?.message || ''}
+        confirmLabel={confirm?.confirmLabel || 'Ya, hapus'}
+        onConfirm={() => confirm?.onYes?.()}
+        onCancel={closeConfirm}
+      />
     </div>
   )
 }
@@ -208,22 +229,34 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile }) {
   )
 }
 
-function PublishSection({ data }) {
+function PublishSection({ data, requestConfirm }) {
   const [slug, setSlug] = useState(() => slugify(data.profile?.name))
   const [items, setItems] = useState(() => listPublished())
   const [lastUrl, setLastUrl] = useState('')
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Sinkron dari localStorage: survive refresh + antar-tab.
   useEffect(() => {
     setItems(listPublished())
   }, [data])
+  useEffect(() => {
+    function onStorage(e) {
+      if (e.key === 'glass-aurora-published-v1') setItems(listPublished())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  const normSlug = String(slug || '').trim().toLowerCase()
+  const isPublished = normSlug ? items.some((i) => i.id === normSlug) : false
 
   // Link stabil /slug (cloud): isi bisa diubah kapan aja via Perbarui tanpa ganti URL.
   async function doPublish(id) {
     const raw = (id || slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
     if (!/^[a-z0-9-]{3,30}$/.test(raw)) {
       setMsg('Slug harus 3–30 karakter: huruf kecil, angka, strip (-).')
+      toast('Slug tidak valid', 'error')
       return
     }
     setSaving(true)
@@ -234,6 +267,7 @@ function PublishSection({ data }) {
       }
     } catch {
       setMsg('Gagal simpan ke cloud. Cek koneksi / rules Firestore.')
+      toast('Gagal simpan ke cloud', 'error')
       setSaving(false)
       return
     }
@@ -247,20 +281,34 @@ function PublishSection({ data }) {
   }
 
   async function doCopy(url) {
-    await copyText(url)
-    setMsg('Link tersalin ✓')
+    const ok = await copyText(url)
+    if (ok) {
+      setMsg('Link tersalin ✓')
+      toast('Link telah disalin ✓')
+    } else {
+      setMsg('Gagal menyalin. Salin manual: ' + url)
+      toast('Gagal menyalin link', 'error')
+    }
   }
 
-  async function doDelete(id) {
-    if (!confirm(`Hapus link terbit /${id}?`)) return
-    try {
-      if (isFirebaseConfigured) await deleteBioCloud(id)
-    } catch {
-      // abaikan, lanjut hapus lokal
-    }
-    deletePublished(id)
-    setItems(listPublished())
-    setMsg(`/${id} dihapus.`)
+  function doDelete(id) {
+    requestConfirm?.({
+      title: 'Hapus link terbit?',
+      message: `Link /${id} tidak bisa dibuka lagi. Lanjutkan?`,
+      confirmLabel: 'Ya, hapus',
+      onYes: async () => {
+        try {
+          if (isFirebaseConfigured) await deleteBioCloud(id)
+        } catch {
+          // abaikan, lanjut hapus lokal
+        }
+        deletePublished(id)
+        setItems(listPublished())
+        setLastUrl((u) => (u.endsWith('/' + id) ? '' : u))
+        setMsg(`/${id} dihapus.`)
+        requestConfirm?.(null)
+      },
+    })
   }
 
   return (
@@ -270,7 +318,14 @@ function PublishSection({ data }) {
       <label className="block text-xs font-semibold text-slate-300/70">Nama bio (slug)</label>
       <div className="mt-1 flex gap-2">
         <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
-        <button onClick={() => doPublish()} disabled={saving} className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold text-black transition hover:brightness-110 active:scale-95 disabled:opacity-60" style={{ background: data.theme?.accent || '#22d3ee' }}>{saving ? 'Menyimpan…' : 'Publish'}</button>
+        <button
+          onClick={() => doPublish()}
+          disabled={saving}
+          aria-live="polite"
+          title={isPublished ? 'Sudah terbit — klik untuk memperbarui isi' : 'Terbitkan link'}
+          className={`shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold transition active:scale-95 disabled:opacity-60 ${isPublished ? 'bg-emerald-400 text-emerald-950 hover:brightness-110' : 'text-black hover:brightness-110'}`}
+          style={isPublished ? { boxShadow: '0 8px 28px -10px rgba(52,211,153,.7)' } : { background: data.theme?.accent || '#22d3ee' }}
+        >{saving ? 'Menyimpan…' : isPublished ? 'Terbit ✓' : 'Publish'}</button>
       </div>
       {lastUrl && (
         <button onClick={() => doCopy(lastUrl)} className="mt-2 w-full truncate rounded-xl bg-white/10 px-3 py-2 text-left text-xs text-slate-100 ring-1 ring-white/15 hover:bg-white/20" title="Klik untuk salin">

@@ -140,6 +140,119 @@ body {
   .edit-drawer { animation: none; }
 }
 
+/* ---------- Brand logo di topbar ---------- */
+.brand-logo {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 12px rgba(244, 114, 182, .35));
+}
+.brand-pill {
+  box-shadow:
+    0 24px 70px -20px rgba(0,0,0,.75),
+    0 0 24px -8px rgba(244,114,182,.25),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+.brand-mini {
+  height: 14px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  mix-blend-mode: screen;
+  display: inline-block;
+  vertical-align: -2px;
+}
+@media (max-width: 480px) {
+  .brand-logo { height: 20px; }
+}
+
+/* ---------- Toast ---------- */
+.toast-root {
+  position: fixed;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  z-index: 70;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+.toast-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 9999px;
+  padding: 10px 18px 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+  position: relative;
+}
+.toast-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #10b981;
+  color: #04120c;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.toast-icon-error { background: #f87171; color: #1c0505; }
+.toast-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(10px) scale(.97); }
+}
+.toast-in { animation: toastIn .35s cubic-bezier(.22,1,.36,1) both; }
+.toast-out { animation: toastOut .25s ease both; }
+
+/* ---------- Confirm modal ---------- */
+.confirm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 6, 16, .65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: confirmFade .2s ease both;
+}
+.confirm-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 20px;
+  padding: 20px;
+}
+@keyframes confirmFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes confirmIn {
+  from { opacity: 0; transform: scale(.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.confirm-in { animation: confirmIn .28s cubic-bezier(.22,1,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-in, .toast-out, .confirm-in, .confirm-overlay { animation-duration: .01ms; animation-iteration-count: 1; }
+}
+
 /* scrollbar */
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 8px; }

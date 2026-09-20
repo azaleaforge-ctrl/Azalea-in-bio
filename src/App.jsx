@@ -3,6 +3,8 @@ import BackgroundAurora from './components/BackgroundAurora.jsx'
 import EditPanel from './components/EditPanel.jsx'
 import PublicPage from './components/PublicPage.jsx'
 import ProfileLinksView from './components/ProfileLinksView.jsx'
+import { Toaster, toast } from './components/Toast.jsx'
+import { copyText } from './lib/publish.js'
 import { loadData, saveData, resetData, exportJSON, parseImportFile } from './lib/storage.js'
 import { resolveVariant } from './data/defaults.js'
 
@@ -79,13 +81,18 @@ function Editor() {
       try {
         const parsed = await parseImportFile(file)
         setData(parsed)
-        alert('Import berhasil ✓')
+        toast('Import berhasil ✓')
       } catch {
-        alert('Gagal: file JSON tidak valid')
+        toast('Gagal: file JSON tidak valid', 'error')
       }
     },
     []
   )
+
+  const onShare = useCallback(async () => {
+    const ok = await copyText(window.location.href)
+    toast(ok ? 'Link telah disalin ✓' : 'Gagal menyalin link', ok ? 'success' : 'error')
+  }, [])
 
   return (
     <div className="noise min-h-screen">
@@ -93,7 +100,7 @@ function Editor() {
 
       {/* topbar */}
       <header className="rise mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-5">
-        <span className="glass rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-100">✦ Azalea In Bio</span>
+        <span className="glass brand-pill rounded-full px-4 py-1.5"><img src="/logo-dark.png" alt="Azalea In Bio" className="brand-logo" /></span>
         <div className="flex gap-2">
           <button onClick={() => setEditing(true)} className="rounded-full px-4 py-2 text-sm font-bold text-black transition hover:brightness-110 active:scale-95" style={{ background: data.theme.accent }}>✎ Edit</button>
         </div>
@@ -107,7 +114,7 @@ function Editor() {
           <>
             <div className="mt-5 flex items-center justify-center gap-2 text-xs">
               <span className="rounded-full bg-white/10 px-3 py-1 text-slate-200 ring-1 ring-white/10">{visibleCount} tautan aktif</span>
-              <button onClick={() => { navigator.clipboard?.writeText(window.location.href); alert('Tautan halaman disalin!') }} className="rounded-full bg-white/10 px-3 py-1 font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⧉ Bagikan</button>
+              <button onClick={onShare} className="rounded-full bg-white/10 px-3 py-1 font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⧉ Bagikan</button>
             </div>
             <div className="mt-5 hidden items-center gap-2 rounded-2xl bg-black/30 p-3 text-left text-xs leading-relaxed text-slate-300/80 ring-1 ring-white/10 md:flex">
               <span className="text-lg">💡</span>
@@ -117,8 +124,8 @@ function Editor() {
         }
         emptyHint={<>Belum ada tautan aktif. Buka <b>Mode Edit</b> untuk menyalakan tautan.</>}
         footer={
-          <footer className="reveal mt-10 text-center text-xs text-slate-300/50">
-            Dibuat dengan ✦ Azalea In Bio · edit langsung, tersimpan otomatis di browser
+          <footer className="reveal mt-10 flex items-center justify-center gap-2 text-center text-xs text-slate-300/50">
+            <span>Dibuat dengan</span><img src="/logo-dark.png" alt="Azalea In Bio" className="brand-mini" /><span>· tersimpan otomatis</span>
           </footer>
         }
       />
@@ -142,6 +149,7 @@ function Editor() {
           onReset={() => setData(resetData())}
         />
       )}
+      <Toaster />
     </div>
   )
 }
