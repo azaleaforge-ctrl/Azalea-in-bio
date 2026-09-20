@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { BG_VARIANTS } from '../data/defaults.js'
 import { BRANDS, BrandIcon, detectBrand } from './icons/brandIcons.jsx'
-import { prettyUrlWithData, slugify, copyText } from '../lib/publish.js'
+import { listPublished, savePublished, deletePublished, prettyUrl, slugify, copyText, snapshotOf } from '../lib/publish.js'
+import { saveBioCloud, deleteBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
 
 const ACCENTS = ['#22d3ee', '#f472b6', '#a3e635', '#facc15', '#8b5cf6', '#fb923c']
 
@@ -209,22 +210,40 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile }) {
 
 function PublishSection({ data }) {
   const [slug, setSlug] = useState(() => slugify(data.profile?.name))
+  const [items, setItems] = useState(() => listPublished())
   const [lastUrl, setLastUrl] = useState('')
   const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  function doPublish() {
-    const raw = (slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
+  useEffect(() => {
+    setItems(listPublished())
+  }, [data])
+
+  // Link stabil /slug (cloud): isi bisa diubah kapan aja via Perbarui tanpa ganti URL.
+  async function doPublish(id) {
+    const raw = (id || slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
     if (!/^[a-z0-9-]{3,30}$/.test(raw)) {
       setMsg('Slug harus 3–30 karakter: huruf kecil, angka, strip (-).')
       return
     }
-    const url = prettyUrlWithData(raw, data)
-    setLastUrl(url)
-    if (url.length > 7000) {
-      setMsg('Link jadi (tapi panjang). Kecilkan foto avatar agar aman dibuka di semua browser.')
-    } else {
-      setMsg(`Terbit di /${raw} ✓ — tiap edit, tekan Publish lagi lalu salin link baru.`)
+    setSaving(true)
+    setMsg('')
+    try {
+      if (isFirebaseConfigured) {
+        await saveBioCloud(raw, snapshotOf(data))
+      }
+    } catch {
+      setMsg('Gagal simpan ke cloud. Cek koneksi / rules Firestore.')
+      setSaving(false)
+      return
     }
+    savePublished(raw, data)
+    setItems(listPublished())
+    setLastUrl(prettyUrl(raw))
+    setMsg(isFirebaseConfigured
+      ? `Terbit di /${raw} ✓ Link tetap — edit lalu tekan Perbarui.`
+      : 'Firebase belum dikonfigurasi di app ini — link hanya tersimpan di perangkat ini.')
+    setSaving(false)
   }
 
   async function doCopy(url) {
@@ -232,19 +251,44 @@ function PublishSection({ data }) {
     setMsg('Link tersalin ✓')
   }
 
+  async function doDelete(id) {
+    if (!confirm(`Hapus link terbit /${id}?`)) return
+    try {
+      if (isFirebaseConfigured) await deleteBioCloud(id)
+    } catch {
+      // abaikan, lanjut hapus lokal
+    }
+    deletePublished(id)
+    setItems(listPublished())
+    setMsg(`/${id} dihapus.`)
+  }
+
   return (
     <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
       <h3 className="font-display mb-1 text-sm font-bold uppercase tracking-widest text-slate-300/70">Publish Publik 🚀</h3>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link utama ala Linktree: <code>/{slug || 'nama-kamu'}</code>. Data ikut di link, jadi bisa dibuka orang lain di HP / desktop mana pun.</p>
+      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link stabil ala Linktree: <code>/{slug || 'nama-kamu'}</code>. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama.</p>
       <label className="block text-xs font-semibold text-slate-300/70">Nama bio (slug)</label>
       <div className="mt-1 flex gap-2">
         <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
-        <button onClick={doPublish} className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold text-black transition hover:brightness-110 active:scale-95" style={{ background: data.theme?.accent || '#22d3ee' }}>Publish</button>
+        <button onClick={() => doPublish()} disabled={saving} className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold text-black transition hover:brightness-110 active:scale-95 disabled:opacity-60" style={{ background: data.theme?.accent || '#22d3ee' }}>{saving ? 'Menyimpan…' : 'Publish'}</button>
       </div>
       {lastUrl && (
         <button onClick={() => doCopy(lastUrl)} className="mt-2 w-full truncate rounded-xl bg-white/10 px-3 py-2 text-left text-xs text-slate-100 ring-1 ring-white/15 hover:bg-white/20" title="Klik untuk salin">
           🔗 {lastUrl} <span className="opacity-60">(ketuk untuk salin)</span>
         </button>
+      )}
+      {items.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-[11px] font-bold text-slate-300/70">Link terbit ({items.length})</p>
+          {items.map((it) => (
+            <div key={it.id} className="flex items-center gap-1.5 rounded-xl bg-black/40 px-2.5 py-1.5 ring-1 ring-white/10">
+              <span className="min-w-0 flex-1 truncate text-xs text-slate-200">/{it.id} <span className="opacity-50">· {it.name}</span></span>
+              <button onClick={() => doCopy(prettyUrl(it.id))} title="Salin link" className="rounded-lg bg-white/10 px-2 py-1 text-[11px] ring-1 ring-white/10 hover:bg-white/20">Salin</button>
+              <button onClick={() => doPublish(it.id)} disabled={saving} title="Simpan perubahan ke link ini" className="rounded-lg bg-white/10 px-2 py-1 text-[11px] ring-1 ring-white/10 hover:bg-white/20 disabled:opacity-60">Perbarui</button>
+              <button onClick={() => doDelete(it.id)} title="Hapus" className="rounded-lg bg-red-500/25 px-2 py-1 text-[11px] text-red-100 ring-1 ring-red-400/20">✕</button>
+            </div>
+          ))}
+        </div>
       )}
       {msg && <p className="mt-2 text-[11px] text-emerald-300/90">{msg}</p>}
     </section>

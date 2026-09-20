@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
+import { deleteDoc, doc, getDoc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
 
 const cfg = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -34,4 +34,14 @@ export async function saveBioCloud(slug, snapshot) {
   const key = normalizeSlug(slug)
   await setDoc(doc(db(), 'bios', key), { snapshot, updatedAt: serverTimestamp() }, { merge: true })
   return key
+}
+
+export async function deleteBioCloud(slug) {
+  if (!isFirebaseConfigured) return null
+  try {
+    await deleteDoc(doc(db(), 'bios', normalizeSlug(slug)))
+  } catch {
+    // abaikan
+  }
+  return true
 }
