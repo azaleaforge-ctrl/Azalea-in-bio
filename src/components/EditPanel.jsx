@@ -252,7 +252,7 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile, upload
 }
 
 function PublishSection({ data, requestConfirm }) {
-  const [slug, setSlug] = useState(() => slugify(data.profile?.name))
+  const [slug, setSlug] = useState(() => data.profile?.name || '')
   const [items, setItems] = useState(() => listPublished())
   const [lastUrl, setLastUrl] = useState('')
   const [msg, setMsg] = useState('')
@@ -270,10 +270,12 @@ function PublishSection({ data, requestConfirm }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  const normSlug = String(slug || '').trim().toLowerCase()
+  // Teks mentah saat mengetik; slugify hanya saat dipakai (fallback 'tautan' diabaikan bila kosong).
+  const trimmed = slug.trim()
+  const prettyBase = trimmed ? slugify(trimmed) : ''
   // Sudah terbit bila ada item dengan id persis ATAU berawalan base + '-' (slug bersuffix).
-  const publishedMatch = normSlug
-    ? items.find((i) => i.id === normSlug || i.id.startsWith(normSlug + '-'))
+  const publishedMatch = prettyBase
+    ? items.find((i) => i.id === prettyBase || i.id.startsWith(prettyBase + '-'))
     : null
   const isPublished = !!publishedMatch
 
@@ -300,7 +302,12 @@ function PublishSection({ data, requestConfirm }) {
 
   // Publish BARU: beri akhiran acak, cek tabrakan lokal + cloud (maks 3x).
   async function doPublishNew() {
-    const base = (slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
+    if (!slug.trim()) {
+      setMsg('Nama belum diisi.')
+      toast('Nama belum diisi', 'error')
+      return
+    }
+    const base = slugify(slug)
     if (!/^[a-z0-9-]{3,30}$/.test(base)) {
       setMsg('Nama harus 3–30 karakter: huruf kecil, angka, strip (-).')
       toast('Nama tidak valid', 'error')
@@ -392,10 +399,10 @@ function PublishSection({ data, requestConfirm }) {
   return (
     <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
       <h3 className="font-display mb-1 text-sm font-bold uppercase tracking-widest text-slate-300/70">Publish Publik 🚀</h3>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link unik ala Linktree: <code>/{slug || 'nama-kamu'}-xxxxxx</code>. Akhiran acak tiap terbitan — tidak bisa ditebak. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama. Link lama tanpa akhiran tetap jalan.</p>
+      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link unik ala Linktree: <code>/{prettyBase || 'nama-kamu'}-xxxxxx</code>. Akhiran acak tiap terbitan — tidak bisa ditebak. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama. Link lama tanpa akhiran tetap jalan.</p>
       <label className="block text-xs font-semibold text-slate-300/70">Nama bio (dasar link)</label>
       <div className="mt-1 flex gap-2">
-        <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
+        <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
         <button
           onClick={() => doPublish()}
           disabled={saving}
