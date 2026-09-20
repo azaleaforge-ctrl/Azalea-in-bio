@@ -53,10 +53,31 @@ export async function compressImage(file, { maxDim = 768, quality = 0.85 } = {})
 
 async function uploadCompressed(file, maxDim) {
   const compressed = await compressImage(file, { maxDim, quality: 0.85 })
-  const res = await uploadFiles('avatarUploader', { files: [compressed] })
-  const url = res?.[0]?.url
-  if (!url) throw new Error('Upload gagal. Coba lagi.')
-  return url
+  try {
+    const res = await uploadFiles('avatarUploader', { files: [compressed] })
+    const url = res?.[0]?.url
+    if (!url) throw new Error('Upload gagal. Coba lagi.')
+    return url
+  } catch (e) {
+    // Preflight HANYA di path error: ambil status + cuplikan body untuk diagnosis
+    // (mis. 404 HTML vs JSON error), tanpa mengganggu alur sukses.
+    let probe = { status: '?', snippet: '' }
+    try {
+      const r = await fetch('/api/uploadthing', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      })
+      probe = { status: r.status, snippet: (await r.text()).slice(0, 300) }
+    } catch (err) {
+      probe = { status: 'fetch-gagal', snippet: String(err?.message || err).slice(0, 300) }
+    }
+    console.error('Upload gagal. Diagnostik server:', probe, 'Error asli:', e)
+    const out = new Error(`Upload gagal (server status ${probe.status}). Coba lagi.`)
+    out.details = probe
+    out.cause = e
+    throw out
+  }
 }
 
 export function uploadAvatar(file) {
