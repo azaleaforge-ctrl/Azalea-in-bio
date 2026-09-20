@@ -4,6 +4,7 @@ import { BRANDS, BrandIcon, detectBrand } from './icons/brandIcons.jsx'
 import { listPublished, savePublished, deletePublished, prettyUrl, slugify, copyText, snapshotOf } from '../lib/publish.js'
 import { saveBioCloud, deleteBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
 import { toast } from './Toast.jsx'
+import { uploadAvatar, uploadLinkIcon } from '../lib/uploadImage.js'
 import ConfirmDialog from './Confirm.jsx'
 
 const ACCENTS = ['#22d3ee', '#f472b6', '#a3e635', '#facc15', '#8b5cf6', '#fb923c']
@@ -12,6 +13,9 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
   const fileAvatar = useRef(null)
   const fileImport = useRef(null)
   const [confirm, setConfirm] = useState(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarMsg, setAvatarMsg] = useState('')
+  const [uploadingIconId, setUploadingIconId] = useState(null)
   const closeConfirm = () => setConfirm(null)
 
   // Tutup panel dengan tombol Escape
@@ -60,18 +64,35 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
     setData((d) => ({ ...d, links: [...d.links, { id, title: 'Link baru', url: 'https://', brand: 'auto', active: true }] }))
   }
 
-  function onAvatarFile(f) {
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => patchProfile({ avatar: String(reader.result) })
-    reader.readAsDataURL(f)
+  async function onAvatarFile(f) {
+    if (!f || uploadingAvatar) return
+    setUploadingAvatar(true)
+    setAvatarMsg('Mengunggah foto…')
+    try {
+      const url = await uploadAvatar(f)
+      patchProfile({ avatar: url })
+      toast('Foto terunggah ✓')
+    } catch (e) {
+      toast(e?.message || 'Upload gagal. Coba lagi.', 'error')
+    } finally {
+      setUploadingAvatar(false)
+      setAvatarMsg('')
+      if (fileAvatar.current) fileAvatar.current.value = ''
+    }
   }
 
-  function onLinkIconFile(id, f) {
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => updateLink(id, { iconUrl: String(reader.result) })
-    reader.readAsDataURL(f)
+  async function onLinkIconFile(id, f) {
+    if (!f || uploadingIconId) return
+    setUploadingIconId(id)
+    try {
+      const url = await uploadLinkIcon(f)
+      updateLink(id, { iconUrl: url })
+      toast('Ikon terunggah ✓')
+    } catch (e) {
+      toast(e?.message || 'Upload gagal. Coba lagi.', 'error')
+    } finally {
+      setUploadingIconId(null)
+    }
   }
 
   return (
@@ -99,8 +120,9 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
           <div className="flex items-center gap-3">
             <AvatarPreview avatar={data.profile.avatar} name={data.profile.name} />
             <div className="flex flex-1 flex-col gap-2">
-              <button onClick={() => fileAvatar.current?.click()} className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">Upload foto</button>
-              <input ref={fileAvatar} type="file" accept="image/*" hidden onChange={(e) => onAvatarFile(e.target.files?.[0])} />
+              <button onClick={() => fileAvatar.current?.click()} disabled={uploadingAvatar} className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-60">{uploadingAvatar ? 'Mengunggah…' : 'Upload foto'}</button>
+              <input ref={fileAvatar} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onAvatarFile(e.target.files?.[0])} />
+              {avatarMsg && <p className="text-[11px] text-slate-300/70" aria-live="polite">{avatarMsg}</p>}
               <input
                 value={data.profile.avatar?.startsWith('data:') ? '' : data.profile.avatar || ''}
                 onChange={(e) => patchProfile({ avatar: e.target.value })}
@@ -154,7 +176,7 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
           </div>
           <div className="space-y-3">
             {data.links.map((l) => (
-              <LinkEditor key={l.id} link={l} updateLink={updateLink} removeLink={removeLink} moveLink={moveLink} onIconFile={onLinkIconFile} />
+              <LinkEditor key={l.id} link={l} updateLink={updateLink} removeLink={removeLink} moveLink={moveLink} onIconFile={onLinkIconFile} uploading={uploadingIconId === l.id} />
             ))}
           </div>
         </section>
@@ -179,7 +201,7 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
   )
 }
 
-function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile }) {
+function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile, uploading }) {
   const auto = detectBrand(link.url || '')
   const current = link.brand && link.brand !== 'auto' ? link.brand : auto
   return (
@@ -211,9 +233,9 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile }) {
             <BrandIcon brand={b.id} className="h-4.5 w-4.5" />
           </button>
         ))}
-        <label title="Upload gambar custom" className="grid h-9 cursor-pointer place-items-center rounded-lg bg-white/5 text-sm text-slate-300 ring-1 ring-white/10 hover:bg-white/10">
-          🖼
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onIconFile(link.id, f); e.target.value = '' }} />
+        <label title={uploading ? 'Mengunggah foto…' : 'Upload gambar custom'} aria-disabled={uploading} className={`grid h-9 place-items-center rounded-lg bg-white/5 text-sm text-slate-300 ring-1 ring-white/10 hover:bg-white/10 ${uploading ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
+          {uploading ? '⏳' : '🖼'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) onIconFile(link.id, f); e.target.value = '' }} />
         </label>
       </div>
       {link.iconUrl && (
