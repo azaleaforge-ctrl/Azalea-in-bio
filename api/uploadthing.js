@@ -1,3 +1,4 @@
+import express from 'express'
 import { createUploadthing } from 'uploadthing/server'
 import { createRouteHandler } from 'uploadthing/express'
 
@@ -12,4 +13,7 @@ const router = {
     }),
 }
 
-export default createRouteHandler({ router })
+const app = express()
+app.use(createRouteHandler({ router }))
+
+export default app
