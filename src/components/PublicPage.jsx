@@ -4,6 +4,7 @@ import ProfileLinksView from './ProfileLinksView.jsx'
 import { resolveVariant } from '../data/defaults.js'
 import { getPublished, decodeData } from '../lib/publish.js'
 import { getBioCloud } from '../lib/firebase.js'
+import { updateParallax } from './backgrounds/fx.js'
 
 // Halaman publik BERSIH: profil + links + background + klik.
 // Tanpa tombol edit, tanpa panel, tanpa branding. Judul tab = nama profil.
@@ -55,10 +56,7 @@ export default function PublicPage({ id, dataParam }) {
 
   useEffect(() => {
     function onMouse(e) {
-      const x = (e.clientX / window.innerWidth - 0.5) * 2
-      const y = (e.clientY / window.innerHeight - 0.5) * 2
-      document.documentElement.style.setProperty('--mx', x.toFixed(3))
-      document.documentElement.style.setProperty('--my', y.toFixed(3))
+      updateParallax(e.clientX, e.clientY)
     }
     window.addEventListener('mousemove', onMouse)
     return () => window.removeEventListener('mousemove', onMouse)

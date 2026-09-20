@@ -13,6 +13,7 @@ body {
   background: #05070f;
   color: #f4f6ff;
   overflow-x: hidden;
+  overscroll-behavior-y: none; /* cegah rubber-band menyingkap celah hitam di mobile */
   transition: background .6s ease, color .6s ease;
 }
 
@@ -73,7 +74,15 @@ body {
 .blob-1 { animation: drift1 16s ease-in-out infinite, meshShift 12s ease-in-out infinite; }
 .blob-2 { animation: drift2 20s ease-in-out infinite, meshShift 14s ease-in-out infinite; }
 .blob-3 { animation: drift3 18s ease-in-out infinite, meshShift 11s ease-in-out infinite; }
-.parallax-layer { transform: translate(calc(var(--mx) * var(--px, 30px)), calc(var(--my) * var(--py, 30px))); }
+.parallax-layer {
+  transform: translate(calc(var(--mx) * var(--px, 30px)), calc(var(--my) * var(--py, 30px)));
+  will-change: transform;
+}
+/* Bleed ada di class (-inset-10) tiap lapisan parallax, jadi tepi tak tersingkap.
+   Lapisan scene canvas statis (tanpa transform) sudah full-cover by construction. */
+@media (prefers-reduced-motion: reduce) {
+  .parallax-layer { transform: none; }
+}
 
 /* ---------- Background premium: transisi fade antar template ---------- */
 @keyframes bgFadeIn {

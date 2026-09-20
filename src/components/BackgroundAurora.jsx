@@ -36,9 +36,11 @@ export default function BackgroundAurora({ variantId }) {
       <div key={'new-' + shown} className="bg-layer-fadein absolute inset-0">
         <Scene id={shown} />
       </div>
-      {/* parallax halus ikut mouse + vignette global agar kartu kaca tetap terbaca */}
+      {/* parallax halus ikut mouse + vignette global agar kartu kaca tetap terbaca.
+          -inset-10 = bleed 40px tiap sisi; geser maks ±14px/±10px, jadi
+          vignette selalu menutup viewport penuh (margin aman ≥26px). */}
       <div
-        className="parallax-layer pointer-events-none absolute inset-0"
+        className="parallax-layer pointer-events-none absolute -inset-10"
         style={{ '--px': '14px', '--py': '10px', background: 'radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.42) 100%)' }}
       />
     </div>
