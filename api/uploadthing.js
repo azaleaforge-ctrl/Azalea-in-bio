@@ -5,7 +5,7 @@ import { createRouteHandler } from 'uploadthing/express'
 const f = createUploadthing()
 
 const router = {
-  avatarUploader: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
+  avatarUploader: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } }, { awaitServerData: false })
     // TODO: validasi user (cek sesi/auth) di sini sebelum mengizinkan upload.
     .middleware(() => ({}))
     .onUploadComplete(({ file }) => {
