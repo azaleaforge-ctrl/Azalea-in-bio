@@ -142,7 +142,7 @@ body {
 
 /* ---------- Brand logo di topbar ---------- */
 .brand-logo {
-  height: 24px;
+  height: 34px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -166,7 +166,7 @@ body {
   vertical-align: -2px;
 }
 @media (max-width: 480px) {
-  .brand-logo { height: 20px; }
+  .brand-logo { height: 27px; }
 }
 
 /* ---------- Toast ---------- */
