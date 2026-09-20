@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BG_VARIANTS } from '../data/defaults.js'
 import { BRANDS, BrandIcon, detectBrand } from './icons/brandIcons.jsx'
-import { listPublished, savePublished, deletePublished, publicUrl, publicUrlWithData, dataOnlyUrl, slugify, copyText, prettyUrl, snapshotOf } from '../lib/publish.js'
-import { saveBioCloud, isFirebaseConfigured } from '../lib/firebase.js'
+import { prettyUrlWithData, slugify, copyText } from '../lib/publish.js'
 
 const ACCENTS = ['#22d3ee', '#f472b6', '#a3e635', '#facc15', '#8b5cf6', '#fb923c']
 
@@ -210,32 +209,22 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile }) {
 
 function PublishSection({ data }) {
   const [slug, setSlug] = useState(() => slugify(data.profile?.name))
-  const [items, setItems] = useState(() => listPublished())
   const [lastUrl, setLastUrl] = useState('')
   const [msg, setMsg] = useState('')
 
-  useEffect(() => {
-    setItems(listPublished())
-  }, [data])
-
-  async function doPublish(id) {
-    const raw = (id || slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
+  function doPublish() {
+    const raw = (slug || slugify(data.profile?.name)).trim().toLowerCase() || 'tautan'
     if (!/^[a-z0-9-]{3,30}$/.test(raw)) {
       setMsg('Slug harus 3–30 karakter: huruf kecil, angka, strip (-).')
       return
     }
-    setMsg('')
-    // Cloud dulu, fallback lokal agar backward-compat.
-    try {
-      if (isFirebaseConfigured) await saveBioCloud(raw, snapshotOf(data))
-    } catch {
-      // abaikan, lanjut fallback lokal
-    }
-    savePublished(raw, data)
-    setItems(listPublished())
-    const url = isFirebaseConfigured ? prettyUrl(raw) : publicUrl(raw)
+    const url = prettyUrlWithData(raw, data)
     setLastUrl(url)
-    setMsg(isFirebaseConfigured ? `Terbit di /${raw} ✓` : 'Tautan publik tersimpan. Edit setelah ini TIDAK mengubahnya sampai "Perbarui".')
+    if (url.length > 7000) {
+      setMsg('Link jadi (tapi panjang). Kecilkan foto avatar agar aman dibuka di semua browser.')
+    } else {
+      setMsg(`Terbit di /${raw} ✓ — tiap edit, tekan Publish lagi lalu salin link baru.`)
+    }
   }
 
   async function doCopy(url) {
@@ -246,33 +235,16 @@ function PublishSection({ data }) {
   return (
     <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
       <h3 className="font-display mb-1 text-sm font-bold uppercase tracking-widest text-slate-300/70">Publish Publik 🚀</h3>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Bekukan tampilan saat ini jadi link publik. Edit draf tidak mengubah link terbit sampai kamu tekan Publish/Perbarui.</p>
-      <label className="block text-xs font-semibold text-slate-300/70">ID link publik</label>
+      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link utama ala Linktree: <code>/{slug || 'nama-kamu'}</code>. Data ikut di link, jadi bisa dibuka orang lain di HP / desktop mana pun.</p>
+      <label className="block text-xs font-semibold text-slate-300/70">Nama bio (slug)</label>
       <div className="mt-1 flex gap-2">
         <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
-        <button onClick={() => doPublish()} className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold text-black transition hover:brightness-110 active:scale-95" style={{ background: data.theme?.accent || '#22d3ee' }}>Publish</button>
+        <button onClick={doPublish} className="shrink-0 rounded-xl px-4 py-2 text-xs font-extrabold text-black transition hover:brightness-110 active:scale-95" style={{ background: data.theme?.accent || '#22d3ee' }}>Publish</button>
       </div>
       {lastUrl && (
         <button onClick={() => doCopy(lastUrl)} className="mt-2 w-full truncate rounded-xl bg-white/10 px-3 py-2 text-left text-xs text-slate-100 ring-1 ring-white/15 hover:bg-white/20" title="Klik untuk salin">
           🔗 {lastUrl} <span className="opacity-60">(ketuk untuk salin)</span>
         </button>
-      )}
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <button onClick={() => doCopy(publicUrlWithData(slug, data))} className="rounded-xl bg-white/10 px-2 py-2 text-[11px] font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">📋 Salin link berisi data (lintas-device)</button>
-        <button onClick={() => doCopy(dataOnlyUrl(data))} className="rounded-xl bg-white/10 px-2 py-2 text-[11px] font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">📋 Salin link data saja (#/r)</button>
-      </div>
-      {items.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          <p className="text-[11px] font-bold text-slate-300/70">Link terbit di perangkat ini ({items.length})</p>
-          {items.map((it) => (
-            <div key={it.id} className="flex items-center gap-1.5 rounded-xl bg-black/40 px-2.5 py-1.5 ring-1 ring-white/10">
-              <span className="min-w-0 flex-1 truncate text-xs text-slate-200">#{it.id} <span className="opacity-50">· {it.name}</span></span>
-              <button onClick={() => doCopy(publicUrl(it.id))} title="Salin link" className="rounded-lg bg-white/10 px-2 py-1 text-[11px] ring-1 ring-white/10 hover:bg-white/20">Salin</button>
-              <button onClick={() => doPublish(it.id)} title="Timpa dengan draf saat ini" className="rounded-lg bg-white/10 px-2 py-1 text-[11px] ring-1 ring-white/10 hover:bg-white/20">Perbarui</button>
-              <button onClick={() => { if (confirm(`Hapus link terbit #${it.id}?`)) { deletePublished(it.id); setItems(listPublished()) } }} title="Hapus" className="rounded-lg bg-red-500/25 px-2 py-1 text-[11px] text-red-100 ring-1 ring-red-400/20">✕</button>
-            </div>
-          ))}
-        </div>
       )}
       {msg && <p className="mt-2 text-[11px] text-emerald-300/90">{msg}</p>}
     </section>

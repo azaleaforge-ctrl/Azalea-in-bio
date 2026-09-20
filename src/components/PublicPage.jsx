@@ -43,6 +43,9 @@ export default function PublicPage({ id, dataParam }) {
   if (!snap && id && !loading) snap = getPublished(id)
 
   const name = snap?.profile?.name || 'Tautan'
+  const accent = snap?.theme?.accent || '#22d3ee'
+  const variantId = resolveVariant(snap?.theme?.bgVariant)
+
   useEffect(() => {
     document.title = name
     return () => {
@@ -60,6 +63,10 @@ export default function PublicPage({ id, dataParam }) {
     window.addEventListener('mousemove', onMouse)
     return () => window.removeEventListener('mousemove', onMouse)
   }, [])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', accent)
+  }, [accent])
 
   if (loading) {
     return (
@@ -87,13 +94,6 @@ export default function PublicPage({ id, dataParam }) {
       </div>
     )
   }
-
-  const accent = snap.theme?.accent || '#22d3ee'
-  const variantId = resolveVariant(snap.theme?.bgVariant)
-
-  useEffect(() => {
-    document.documentElement.style.setProperty('--accent', accent)
-  }, [accent])
 
   return (
     <div className="noise min-h-screen">

@@ -77,6 +77,14 @@ export function prettyUrl(slug) {
   return `${window.location.origin}/${encodeURIComponent(String(slug || '').trim().toLowerCase())}`
 }
 
+// Main link: pretty ala Linktree (/nama) tapi data ikut di query (?d=...).
+// Lintas-device tanpa Firebase / localStorage. Slug hanya kosmetik,
+// yang dirender = snapshot dari `d`.
+export function prettyUrlWithData(slug, data) {
+  const s = encodeURIComponent(String(slug || '').trim().toLowerCase() || 'tautan')
+  return `${window.location.origin}/${s}?d=${encodeData(snapshotOf(data))}`
+}
+
 // Link lintas-device: data ikut di URL, render tanpa localStorage.
 export function publicUrlWithData(id, data) {
   return `${appBase()}#/p/${encodeURIComponent(id)}?d=${encodeData(snapshotOf(data))}`
