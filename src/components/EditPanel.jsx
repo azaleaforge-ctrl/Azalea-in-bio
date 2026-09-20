@@ -415,7 +415,7 @@ function PublishSection({ data, requestConfirm }) {
   return (
     <section className="mt-4 rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
       <h3 className="font-display mb-1 text-sm font-bold uppercase tracking-widest text-slate-300/70">Publish Publik 🚀</h3>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link unik ala Linktree: <code>/{prettyBase || 'nama-kamu'}-xxxxxx</code>. Akhiran acak tiap terbitan — tidak bisa ditebak. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama. Link lama tanpa akhiran tetap jalan.</p>
+      <p className="mb-3 text-[11px] leading-relaxed text-slate-300/60">Satu link unik azaleainbio: <code>/{prettyBase || 'nama-kamu'}-xxxxxx</code>. Akhiran acak tiap terbitan — tidak bisa ditebak. Ubah isi kapan aja via <b>Perbarui</b> — URL tetap sama. Link lama tanpa akhiran tetap jalan.</p>
       <label className="block text-xs font-semibold text-slate-300/70">Nama bio (dasar link)</label>
       <div className="mt-1 flex gap-2">
         <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="nama-kamu" className="min-w-0 flex-1 rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
