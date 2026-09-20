@@ -100,7 +100,7 @@ function Editor() {
 
       {/* topbar */}
       <header className="rise mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-5">
-        <span className="glass brand-pill rounded-full px-4 py-1.5"><img src="/logo-dark.png" alt="Azalea In Bio" className="brand-logo" /></span>
+        <span className="glass brand-pill rounded-full px-5 py-2"><img src="/logo-dark.png" alt="Azalea In Bio" className="brand-logo" /></span>
         <div className="flex gap-2">
           <button onClick={() => setEditing(true)} className="rounded-full px-4 py-2 text-sm font-bold text-black transition hover:brightness-110 active:scale-95" style={{ background: data.theme.accent }}>✎ Edit</button>
         </div>

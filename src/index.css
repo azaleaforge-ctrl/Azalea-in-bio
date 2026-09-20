@@ -142,31 +142,33 @@ body {
 
 /* ---------- Brand logo di topbar ---------- */
 .brand-logo {
-  height: 34px;
+  height: 46px;
   width: auto;
   object-fit: contain;
   display: block;
-  border-radius: 6px;
+  border-radius: 8px;
   mix-blend-mode: screen;
-  filter: drop-shadow(0 0 12px rgba(244, 114, 182, .35));
+  filter: drop-shadow(0 0 14px rgba(244, 114, 182, .4));
 }
 .brand-pill {
+  display: inline-flex;
+  align-items: center;
   box-shadow:
     0 24px 70px -20px rgba(0,0,0,.75),
     0 0 24px -8px rgba(244,114,182,.25),
     inset 0 1px 0 rgba(255,255,255,.18);
 }
 .brand-mini {
-  height: 14px;
+  height: 17px;
   width: auto;
   object-fit: contain;
   border-radius: 4px;
   mix-blend-mode: screen;
   display: inline-block;
-  vertical-align: -2px;
+  vertical-align: -3px;
 }
 @media (max-width: 480px) {
-  .brand-logo { height: 27px; }
+  .brand-logo { height: 35px; }
 }
 
 /* ---------- Toast ---------- */
