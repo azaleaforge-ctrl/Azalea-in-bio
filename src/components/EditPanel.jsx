@@ -8,6 +8,7 @@ import { uploadAvatar, uploadLinkIcon } from '../lib/uploadImage.js'
 import ConfirmDialog from './Confirm.jsx'
 
 const ACCENTS = ['#22d3ee', '#f472b6', '#a3e635', '#facc15', '#8b5cf6', '#fb923c']
+const BIO_MAX = 500
 
 export default function EditPanel({ data, setData, onExport, onImportFile, onReset, onClose }) {
   const fileAvatar = useRef(null)
@@ -95,6 +96,8 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
     }
   }
 
+  const bioRemaining = BIO_MAX - (data.profile.bio?.length || 0)
+
   return (
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
@@ -133,8 +136,21 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
           </div>
           <label className="mt-3 block text-xs font-semibold text-slate-300/70">Nama</label>
           <input value={data.profile.name} onChange={(e) => patchProfile({ name: e.target.value })} className="mt-1 w-full rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
-          <label className="mt-3 block text-xs font-semibold text-slate-300/70">Bio</label>
-          <textarea value={data.profile.bio} onChange={(e) => patchProfile({ bio: e.target.value })} rows={3} className="mt-1 w-full rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30" />
+          <label htmlFor="bio-input" className="mt-3 block text-xs font-semibold text-slate-300/70">Bio</label>
+          <div className="relative mt-1">
+            <textarea
+              id="bio-input"
+              value={data.profile.bio}
+              onChange={(e) => patchProfile({ bio: e.target.value })}
+              rows={3}
+              maxLength={BIO_MAX}
+              aria-describedby="bio-counter"
+              className="w-full rounded-xl bg-black/40 px-3 py-2 pb-6 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-white/30"
+            />
+            <span id="bio-counter" className={`pointer-events-none absolute bottom-2 right-3 text-[11px] tabular-nums ${bioRemaining === 0 ? 'font-bold text-red-400' : 'text-slate-400'}`}>
+              {bioRemaining}/{BIO_MAX}
+            </span>
+          </div>
         </section>
 
         <PublishSection data={data} requestConfirm={(c) => setConfirm(c)} />

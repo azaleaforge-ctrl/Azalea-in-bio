@@ -22,8 +22,11 @@ export function normalize(parsed) {
   const theme = { ...fresh.theme, ...(parsed.theme || {}) }
   theme.bgVariant = resolveVariant(theme.bgVariant) // migrasi varian lama
   theme.mode = 'dark' // dark-only: kunci tema gelap
+  const profile = { ...fresh.profile, ...(parsed.profile || {}) }
+  // Guard bio: pangkas data lama/import yang melebihi 500 karakter.
+  if (typeof profile.bio === 'string') profile.bio = profile.bio.slice(0, 500)
   const links = (parsed.links || []).map(normalizeLink)
-  return { ...fresh, ...parsed, profile: { ...fresh.profile, ...(parsed.profile || {}) }, theme, links }
+  return { ...fresh, ...parsed, profile, theme, links }
 }
 
 export function loadData() {
