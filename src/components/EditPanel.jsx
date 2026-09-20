@@ -217,9 +217,96 @@ export default function EditPanel({ data, setData, onExport, onImportFile, onRes
   )
 }
 
+// ---------- WhatsApp: normalisasi nomor & link grup ----------
+function isGrupUrl(url = '') {
+  return /chat\.whatsapp\.com/i.test(String(url))
+}
+function parseWaPersonal(url = '') {
+  const s = String(url)
+  const m = s.match(/wa\.me\/(\d+)/i) || s.match(/[?&]phone=(\d+)/i)
+  return m ? m[1] : ''
+}
+function parseWaGroup(url = '') {
+  const m = String(url).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/i)
+  return m ? m[1] : ''
+}
+// '08…' → '628…'; sudah '62…' → tetap; lainnya → prefix '62'.
+function normalizeWaPersonal(raw) {
+  let d = String(raw).replace(/\D/g, '')
+  if (!d) return ''
+  if (d.startsWith('0')) d = '62' + d.slice(1)
+  else if (!d.startsWith('62')) d = '62' + d
+  return 'https://wa.me/' + d
+}
+// Full invite atau kode saja → full URL; selain itu '' (invalid).
+function normalizeWaGroup(raw) {
+  const s = String(raw).trim()
+  if (!s) return ''
+  const m = s.match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/i)
+  if (m) return 'https://chat.whatsapp.com/' + m[1]
+  if (/^[A-Za-z0-9]{8,}$/.test(s)) return 'https://chat.whatsapp.com/' + s
+  return ''
+}
+
+function WaEditor({ link, updateLink }) {
+  const [tab, setTab] = useState(() => (isGrupUrl(link.url) ? 'grup' : 'pribadi'))
+  const [raw, setRaw] = useState(() => (isGrupUrl(link.url) ? parseWaGroup(link.url) : parseWaPersonal(link.url)))
+
+  function switchTab(t) {
+    setTab(t)
+    // Isi ulang dari URL tersimpan untuk mode yang dituju; nilai tersimpan tak dirusak.
+    setRaw(t === 'grup' ? parseWaGroup(link.url || '') : parseWaPersonal(link.url || ''))
+  }
+  function onRaw(v) {
+    setRaw(v)
+    if (tab === 'pribadi') {
+      if (!String(v).trim()) return updateLink(link.id, { url: '' })
+      updateLink(link.id, { url: normalizeWaPersonal(v) })
+    } else {
+      if (!String(v).trim()) return updateLink(link.id, { url: '' })
+      const n = normalizeWaGroup(v)
+      if (n) updateLink(link.id, { url: n })
+    }
+  }
+
+  const digits = String(raw).replace(/\D/g, '')
+  const err = tab === 'pribadi'
+    ? (String(raw).trim() && digits.length < 10 ? 'Nomor kurang lengkap (min. 10 digit).' : '')
+    : (String(raw).trim() && !normalizeWaGroup(raw) ? 'Tempel link undangan grup (chat.whatsapp.com/…).' : '')
+
+  return (
+    <div className="mt-2">
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-white/5 p-1 ring-1 ring-white/10" role="tablist" aria-label="Jenis link WhatsApp">
+        {['pribadi', 'grup'].map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => switchTab(t)}
+            className={`rounded-lg px-2 py-1.5 text-xs font-bold ring-1 transition active:scale-95 ${tab === t ? 'bg-white/20 text-white ring-white/40' : 'bg-transparent text-slate-400 ring-transparent hover:bg-white/10'}`}
+          >{t === 'pribadi' ? 'Pribadi' : 'Grup'}</button>
+        ))}
+      </div>
+      <label className="mt-2 block text-[11px] font-semibold text-slate-300/70">
+        {tab === 'pribadi' ? 'Nomor WA (tanpa + / spasi)' : 'Link undangan grup'}
+      </label>
+      <input
+        value={raw}
+        onChange={(e) => onRaw(e.target.value)}
+        placeholder={tab === 'pribadi' ? '81234567890' : 'https://chat.whatsapp.com/…'}
+        inputMode={tab === 'pribadi' ? 'numeric' : undefined}
+        className="mt-1 w-full rounded-xl bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-2 focus:ring-white/30"
+      />
+      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      {link.url && <p className="mt-1.5 truncate text-[11px] text-emerald-300/80" title={link.url}>Link: {link.url}</p>}
+    </div>
+  )
+}
+
 function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile, uploading }) {
   const auto = detectBrand(link.url || '')
   const current = link.brand && link.brand !== 'auto' ? link.brand : auto
+  const isWa = current === 'whatsapp'
   return (
     <div className={`rounded-2xl bg-black/40 p-3 ring-1 ring-white/10 ${link.active ? '' : 'opacity-60'}`}>
       <div className="flex gap-2">
@@ -231,7 +318,9 @@ function LinkEditor({ link, updateLink, removeLink, moveLink, onIconFile, upload
         <input value={link.title} onChange={(e) => updateLink(link.id, { title: e.target.value })} placeholder="Judul" className="min-w-0 flex-1 rounded-lg bg-white/5 px-2 py-1.5 text-sm text-slate-100 outline-none ring-1 ring-white/10" />
         <button onClick={() => updateLink(link.id, { active: !link.active })} title="Aktif/nonaktif" className="shrink-0 rounded-lg bg-white/5 px-2 text-sm ring-1 ring-white/10">{link.active ? '👁' : '🚫'}</button>
       </div>
-      <input value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} placeholder="https://…" className="mt-2 w-full rounded-lg bg-white/5 px-2 py-1.5 text-xs text-slate-100 outline-none ring-1 ring-white/10" />
+      {isWa
+        ? <WaEditor key={'wa-' + link.id} link={link} updateLink={updateLink} />
+        : <input value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} placeholder="https://…" className="mt-2 w-full rounded-lg bg-white/5 px-2 py-1.5 text-xs text-slate-100 outline-none ring-1 ring-white/10" />}
       {/* picker ikon brand */}
       <div className="mt-2 grid grid-cols-7 gap-1">
         <button
