@@ -108,6 +108,14 @@ export default function PublicPage({ id, dataParam }) {
         accent={accent}
         variantId={variantId}
         emptyHint="Belum ada tautan aktif."
+        footer={
+          <footer className="reveal mt-10 flex flex-col items-center gap-1.5 text-center">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-300/50">Dibuat dengan</span>
+            <a href="/" aria-label="Buka Azalea In Bio" className="rounded-lg transition hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/60">
+              <img src="/logo-dark.png" alt="Azalea In Bio" className="brand-mini" />
+            </a>
+          </footer>
+        }
       />
     </div>
   )
