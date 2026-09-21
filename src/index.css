@@ -64,8 +64,11 @@ img, video, canvas, svg { max-width: 100%; }
 /* ---------- Background viewport: diam global, tak ikut overscroll ----------
    Dipakai root BackgroundAurora (fixed terpisah dari konten).
    height:100dvh mengunci tinggi visual-viewport HP (address-bar show/hide
-   tak mengubah layout), translateZ(0) menaikkan ke lapisan kompositor
-   sehingga scroll/overscroll tak me-repaint/re-trigger animasi. */
+   tak mengubah layout).
+   SENGAJA tanpa transform/will-change/contain/backface di root: properti itu
+   membuat stacking context baru sehingga layer -z-10 jatuh di belakang
+   background body dan aurora hilang. Promosi GPU milik anak-anaknya
+   (canvas/blob/parallax), bukan root. */
 .bg-viewport {
   position: fixed;
   inset: 0;
@@ -74,12 +77,6 @@ img, video, canvas, svg { max-width: 100%; }
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  contain: strict;
-  will-change: transform;
 }
 .bg-viewport canvas {
   display: block;
