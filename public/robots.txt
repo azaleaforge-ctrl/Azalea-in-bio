@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://azalea-in-bio.vercel.app/sitemap.xml
