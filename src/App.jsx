@@ -4,7 +4,7 @@ import EditPanel from './components/EditPanel.jsx'
 import PublicPage from './components/PublicPage.jsx'
 import ProfileLinksView from './components/ProfileLinksView.jsx'
 import { Toaster, toast } from './components/Toast.jsx'
-import { copyText } from './lib/publish.js'
+import { copyText, restorePublished } from './lib/publish.js'
 import { updateParallax } from './components/backgrounds/fx.js'
 import { loadData, saveData, resetData, exportJSON, parseImportFile } from './lib/storage.js'
 import { resolveVariant } from './data/defaults.js'
@@ -77,11 +77,12 @@ function Editor() {
   const onImportFile = useCallback(
     async (file) => {
       try {
-        const parsed = await parseImportFile(file)
+        const { data: parsed, published } = await parseImportFile(file)
         setData(parsed)
-        toast('Import berhasil ✓')
-      } catch {
-        toast('Gagal: file JSON tidak valid', 'error')
+        const n = restorePublished(published) // lokal saja, tanpa publish ulang ke server
+        toast(n > 0 ? `Import berhasil ✓ ${n} link publish langsung live` : 'Import berhasil ✓')
+      } catch (e) {
+        toast('Gagal: ' + (e?.message || 'file JSON tidak valid'), 'error')
       }
     },
     []
@@ -114,7 +115,7 @@ function Editor() {
               <span className="rounded-full bg-white/10 px-3 py-1 text-slate-200 ring-1 ring-white/10">{visibleCount} tautan aktif</span>
               <button onClick={onShare} className="rounded-full bg-white/10 px-3 py-1 font-bold text-slate-100 ring-1 ring-white/10 hover:bg-white/20 active:scale-95">⧉ Bagikan</button>
             </div>
-            <div className="mt-5 hidden items-center gap-2 rounded-2xl bg-black/30 p-3 text-left text-xs leading-relaxed text-slate-300/80 ring-1 ring-white/10 md:flex">
+            <div className="mt-5 hidden items-center gap-2 rounded-2xl bg-black/30 p-3 text-left text-xs leading-relaxed text-slate-300/80 ring-1 ring-white/10 lg:flex">
               <span className="text-lg">💡</span>
               <span>Di layar besar profil menempel di kiri saat daftar tautan di kanan di-scroll.</span>
             </div>

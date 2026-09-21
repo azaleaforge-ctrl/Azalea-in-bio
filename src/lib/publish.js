@@ -55,6 +55,50 @@ export function deletePublished(id) {
   localStorage.setItem(PKEY, JSON.stringify(obj))
 }
 
+// Seluruh snapshot terbit lokal yang valid: dibawa saat export JSON.
+export function getPublishedSnapshots() {
+  try {
+    const obj = JSON.parse(localStorage.getItem(PKEY) || '{}')
+    const out = {}
+    for (const [id, snap] of Object.entries(obj || {})) {
+      if (typeof id === 'string' && isSnapshot(snap)) out[id] = snap
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+// Kembalikan status publish dari file import ke registry lokal.
+// Hanya lokal (localStorage) - TIDAK menyentuh server/cloud, jadi tidak
+// ada publish ganda. ID yang sudah terbit di perangkat ini tidak ditimpa.
+// Return: jumlah link yang dipulihkan.
+export function restorePublished(map) {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return 0
+  let current = {}
+  try {
+    current = JSON.parse(localStorage.getItem(PKEY) || '{}') || {}
+  } catch {
+    current = {}
+  }
+  let n = 0
+  for (const [id, snap] of Object.entries(map)) {
+    if (!/^[a-z0-9-]{3,40}$/.test(id)) continue
+    if (!isSnapshot(snap)) continue
+    if (current[id]) continue
+    current[id] = snap
+    n++
+  }
+  if (n > 0) {
+    try {
+      localStorage.setItem(PKEY, JSON.stringify(current))
+    } catch {
+      return 0 // storage penuh - abaikan, state tetap jalan
+    }
+  }
+  return n
+}
+
 // base64url aman URL, tahan unicode
 export function encodeData(obj) {
   const json = JSON.stringify(obj)
