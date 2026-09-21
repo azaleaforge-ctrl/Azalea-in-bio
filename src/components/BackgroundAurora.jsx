@@ -27,7 +27,7 @@ export default function BackgroundAurora({ variantId }) {
   }, [current, shown])
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden" style={{ background: base }} aria-hidden>
+    <div className="bg-viewport fixed inset-0 -z-10 overflow-hidden" style={{ background: base }} aria-hidden>
       {prev && prev !== shown && (
         <div key={'old-' + prev} className="bg-layer-fadeout absolute inset-0">
           <Scene id={prev} />

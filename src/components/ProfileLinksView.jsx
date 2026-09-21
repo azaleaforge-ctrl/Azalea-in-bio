@@ -33,25 +33,27 @@ export default function ProfileLinksView({
   const initial = (data.profile?.name || 'A').trim().charAt(0).toUpperCase()
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl min-w-0 justify-items-center gap-6 overflow-x-clip px-4 pb-24 pt-6 sm:px-5 md:justify-items-stretch lg:grid-cols-[380px_1fr] lg:items-start lg:pt-10">
-      {/* Profil - ukuran dikunci: tidak grow/shrink, lebar penuh terkontrol */}
-      <section className="glass rise mx-auto w-full max-w-full min-w-0 shrink-0 grow-0 overflow-hidden rounded-3xl p-5 text-center sm:max-w-md sm:p-6 md:max-w-lg lg:sticky lg:top-6 lg:mx-0 lg:p-7 lg:rounded-[28px]" style={{ animationDelay: '60ms', flex: 'none' }}>
-        <div className="relative mx-auto h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28">
-          <div className="absolute -inset-1.5 rounded-[24px] opacity-70 blur-xl md:-inset-2 md:rounded-[28px] lg:rounded-[32px]" style={{ background: `linear-gradient(135deg, ${accent}, transparent)` }} />
+    <main className="mx-auto grid w-full max-w-6xl min-w-0 content-start justify-items-center gap-6 overflow-x-clip px-4 pb-24 pt-6 sm:px-5 md:justify-items-center lg:grid-cols-[380px_1fr] lg:items-start lg:pt-10">
+      {/* Profil - ukuran dikunci: tidak grow/shrink, lebar penuh terkontrol.
+          Tablet (md) sengaja disamakan proporsi mobile (max-w-md, avatar h-20)
+          agar kompak center, tidak stretch tinggi. */}
+      <section className="glass rise mx-auto w-full max-w-full min-w-0 shrink-0 grow-0 self-start overflow-hidden rounded-3xl p-5 text-center sm:max-w-md sm:p-6 md:max-w-md md:p-6 lg:sticky lg:top-6 lg:mx-0 lg:p-7 lg:rounded-[28px]" style={{ animationDelay: '60ms', flex: 'none' }}>
+        <div className="relative mx-auto h-20 w-20 lg:h-28 lg:w-28">
+          <div className="absolute -inset-1.5 rounded-[24px] opacity-70 blur-xl lg:rounded-[32px]" style={{ background: `linear-gradient(135deg, ${accent}, transparent)` }} />
           {data.profile?.avatar
-            ? <img src={data.profile.avatar} alt={data.profile?.name} className="relative h-20 w-20 rounded-[22px] object-cover ring-1 ring-white/30 md:h-24 md:w-24 md:rounded-[26px] lg:h-28 lg:w-28 lg:rounded-[28px]" />
-            : <div className="font-display relative grid h-20 w-20 place-items-center rounded-[22px] bg-gradient-to-br from-white/25 to-white/5 text-4xl font-extrabold text-slate-50 md:h-24 md:w-24 md:rounded-[26px] lg:h-28 lg:w-28 lg:rounded-[28px] lg:text-5xl">{initial}</div>}
+            ? <img src={data.profile.avatar} alt={data.profile?.name} className="relative h-20 w-20 rounded-[22px] object-cover ring-1 ring-white/30 lg:h-28 lg:w-28 lg:rounded-[28px]" />
+            : <div className="font-display relative grid h-20 w-20 place-items-center rounded-[22px] bg-gradient-to-br from-white/25 to-white/5 text-4xl font-extrabold text-slate-50 lg:h-28 lg:w-28 lg:rounded-[28px] lg:text-5xl">{initial}</div>}
           <span className="absolute -bottom-1 -right-1 max-w-full truncate rounded-full bg-emerald-400 px-2 py-0.5 text-[10px] font-bold text-black ring-4 ring-black/40 lg:text-[11px]">● online</span>
         </div>
         <h1 className="font-display mt-4 max-w-full break-words text-xl font-extrabold tracking-tight text-slate-50 [overflow-wrap:anywhere] sm:text-2xl lg:mt-5 lg:text-3xl">{data.profile?.name || 'Namamu'}</h1>
         {data.profile?.bio && (
-          <p className="mx-auto mt-2 max-w-full break-words text-[13px] leading-relaxed text-slate-300/80 [overflow-wrap:anywhere] sm:max-w-xs md:max-w-sm md:text-sm lg:max-w-xs">{data.profile.bio}</p>
+          <p className="mx-auto mt-2 max-w-full break-words text-[13px] leading-relaxed text-slate-300/80 [overflow-wrap:anywhere] sm:max-w-xs lg:max-w-xs">{data.profile.bio}</p>
         )}
         {profileExtra}
       </section>
 
       {/* Links - tetap center di mobile, penuh di desktop */}
-      <section className="mx-auto w-full max-w-full min-w-0 sm:max-w-md md:max-w-lg lg:mx-0 lg:max-w-none">
+      <section className="mx-auto w-full max-w-full min-w-0 self-start sm:max-w-md md:max-w-md lg:mx-0 lg:max-w-none">
         <div className="rise mb-4 flex min-w-0 items-end justify-between gap-2" style={{ animationDelay: '140ms' }}>
           <h2 className="font-display min-w-0 text-lg font-bold text-slate-50">{linksTitle}</h2>
           {linksHint && <span className="shrink-0 text-right text-xs text-slate-300/60">{linksHint}</span>}
