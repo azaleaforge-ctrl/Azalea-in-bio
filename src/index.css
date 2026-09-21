@@ -6,21 +6,32 @@
   --accent: #22d3ee;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  max-width: 100%;
+}
 
 body {
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
   background: #05070f;
   color: #f4f6ff;
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100%;
   overscroll-behavior-y: none; /* cegah rubber-band menyingkap celah hitam di mobile */
   transition: background .6s ease, color .6s ease;
 }
+
+/* Safety: media tidak boleh mendorong lebar viewport */
+img, video, canvas, svg { max-width: 100%; }
 
 .font-display { font-family: "Sora", sans-serif; }
 
 /* ---------- Glass premium (dark-only) ---------- */
 .glass {
+  position: relative; /* jangkar ::before agar highlight tidak lepas & tak picu overflow */
+  min-width: 0;
+  max-width: 100%;
   background:
     linear-gradient(135deg, rgba(30,41,68,.62), rgba(8,12,26,.58) 55%, rgba(10,14,30,.66));
   backdrop-filter: blur(28px) saturate(1.6);
@@ -180,7 +191,14 @@ body {
   .brand-mini { height: 24px; }
 }
 @media (max-width: 480px) {
-  .brand-logo { height: 35px; }
+  .brand-logo { height: 35px; max-width: 55vw; }
+  .brand-pill { max-width: calc(100vw - 120px); overflow: hidden; }
+}
+
+/* ---------- Mobile (<640px): kunci card tetap center & anti-overflow ---------- */
+@media (max-width: 639px) {
+  main { justify-items: center; }
+  .link-card { flex: none; }
 }
 
 /* ---------- Toast ---------- */
