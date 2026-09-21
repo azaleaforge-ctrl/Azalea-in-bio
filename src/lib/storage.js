@@ -45,7 +45,7 @@ export function saveData(data) {
   try {
     localStorage.setItem(KEY, JSON.stringify(data))
   } catch {
-    // storage penuh (mis. avatar besar) — abaikan, state tetap jalan
+    // storage penuh (mis. avatar besar) - abaikan, state tetap jalan
   }
 }
 

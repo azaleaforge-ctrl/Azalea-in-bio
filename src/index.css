@@ -44,7 +44,7 @@ img, video, canvas, svg { max-width: 100%; }
   transition: border .6s ease, transform .25s ease, box-shadow .3s ease;
 }
 /* garis cahaya atas: border gradient halus + highlight dalam.
-   position:relative hanya untuk card non-fixed — JANGAN kenakan ke
+   position:relative hanya untuk card non-fixed - JANGAN kenakan ke
    .fixed (drawer edit kanan) karena CSS tak-berlapis menang atas
    utility Tailwind berlapis dan akan merontokkan position:fixed. */
 .glass:not(.fixed) { position: relative; }

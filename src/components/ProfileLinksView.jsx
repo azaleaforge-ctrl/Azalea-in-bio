@@ -33,7 +33,7 @@ export default function ProfileLinksView({
 
   return (
     <main className="mx-auto grid w-full max-w-6xl min-w-0 justify-items-center gap-6 overflow-x-clip px-4 pb-24 pt-6 sm:px-5 md:justify-items-stretch md:grid-cols-[380px_1fr] md:items-start md:pt-10">
-      {/* Profil — ukuran dikunci: tidak grow/shrink, lebar penuh terkontrol */}
+      {/* Profil - ukuran dikunci: tidak grow/shrink, lebar penuh terkontrol */}
       <section className="glass rise mx-auto w-full max-w-full min-w-0 shrink-0 grow-0 overflow-hidden rounded-3xl p-5 text-center sm:max-w-md sm:p-6 md:sticky md:top-6 md:mx-0 md:p-7 md:rounded-[28px]" style={{ animationDelay: '60ms', flex: 'none' }}>
         <div className="relative mx-auto h-20 w-20 md:h-28 md:w-28">
           <div className="absolute -inset-1.5 rounded-[24px] opacity-70 blur-xl md:-inset-2 md:rounded-[32px]" style={{ background: `linear-gradient(135deg, ${accent}, transparent)` }} />
@@ -49,7 +49,7 @@ export default function ProfileLinksView({
         {profileExtra}
       </section>
 
-      {/* Links — tetap center di mobile, penuh di desktop */}
+      {/* Links - tetap center di mobile, penuh di desktop */}
       <section className="mx-auto w-full max-w-full min-w-0 sm:max-w-md md:mx-0 md:max-w-none">
         <div className="rise mb-4 flex min-w-0 items-end justify-between gap-2" style={{ animationDelay: '140ms' }}>
           <h2 className="font-display min-w-0 text-lg font-bold text-slate-50">{linksTitle}</h2>

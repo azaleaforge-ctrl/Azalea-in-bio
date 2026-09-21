@@ -1,7 +1,7 @@
 // Snapshot publish tanpa backend: localStorage + link berisi data (base64 di hash).
 const PKEY = 'glass-aurora-published-v1'
 
-// Homepage utama — dipakai footer halaman publik (satu sumber, jangan hardcode di view).
+// Homepage utama - dipakai footer halaman publik (satu sumber, jangan hardcode di view).
 export const SITE_URL = 'https://azaleainbio.vercel.app/'
 
 export function snapshotOf(data) {
