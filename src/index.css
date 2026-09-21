@@ -10,7 +10,6 @@ html {
   scroll-behavior: smooth;
   overflow-x: clip;
   max-width: 100%;
-  background: #05070f; /* samakan body agar bounce iOS tak menyingkap celah hitam */
   overscroll-behavior: none; /* kunci viewport: bg fixed tak ikut ketarik, scroll isi tetap normal */
 }
 
